@@ -1,0 +1,88 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Frontend ──────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend (static export)
+        working-directory: frontend
+        run: pnpm build
+
+      - name: Verify frontend output
+        run: test -f frontend/out/index.html
+
+      # ── Backend ───────────────────────────────────────
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Build release binary (frontend embedded)
+        run: cargo build -p kars --release --features embed-frontend
+
+      - name: Verify binary
+        run: test -f target/release/kars
+
+      # ── Deploy ────────────────────────────────────────
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Upload binary to server
+        run: |
+          scp -i ~/.ssh/deploy_key \
+            target/release/kars \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/kars/kars.new
+
+      - name: Deploy and restart service
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            set -e
+            sudo systemctl stop kars || true
+            mv /opt/kars/kars.new /opt/kars/kars
+            chmod +x /opt/kars/kars
+            sudo systemctl start kars
+            sleep 2
+            sudo systemctl is-active kars
+          EOF
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

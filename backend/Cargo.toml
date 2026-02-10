@@ -1,0 +1,26 @@
+[package]
+name = "kars"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = []
+embed-frontend = ["dep:rust-embed"]
+
+[dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+uuid = { version = "1.20.0", features = ["v4", "serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tempfile = "3.10"
+dotenvy = "0.15"
+libsql = "0.6"
+
+# Web server
+axum = "0.8"
+tower-http = { version = "0.6", features = ["cors"] }
+
+# Optional: embed frontend static files into binary
+rust-embed = { version = "8", optional = true }

@@ -1,0 +1,10 @@
+/target
+backend/target
+.env
+data/
+frontend/out/
+frontend/.next/
+frontend/node_modules/
+*.swp
+*.swo
+.DS_Store
