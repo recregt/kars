@@ -14,8 +14,11 @@ sudo useradd -r -m -s /usr/sbin/nologin kars
 
 ```bash
 sudo mkdir -p /opt/kars
-sudo chown kars:kars /opt/kars
+sudo mkdir -p /opt/kars/data
+sudo chown -R kars:kars /opt/kars
 ```
+
+If you use `DATABASE_MODE=local`, KARS writes SQLite data under `/opt/kars/data` (default: `/opt/kars/data/kars.db`).
 
 ## 3. Create Environment File
 
@@ -31,6 +34,8 @@ EOF
 sudo chmod 600 /opt/kars/.env
 sudo chown kars:kars /opt/kars/.env
 ```
+
+`/opt/kars/.env` is required by the systemd unit below (`EnvironmentFile=/opt/kars/.env`), so ensure this file exists before starting the service.
 
 ## 4. Install systemd Service
 
@@ -91,7 +96,7 @@ nano ~/.ssh/authorized_keys
 # Paste the public key corresponding to the SSH_KEY GitHub secret
 
 # Allow the deploy user to restart the service without password
-echo "<SSH_USER> ALL=(ALL) NOPASSWD: /bin/systemctl stop kars, /bin/systemctl start kars, /bin/systemctl is-active kars" \
+echo "<SSH_USER> ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart kars, /usr/bin/systemctl is-active kars" \
   | sudo tee /etc/sudoers.d/kars-deploy
 ```
 
@@ -111,6 +116,8 @@ curl http://localhost:3001/api/stats
 ```
 
 ## 8. Optional: Reverse Proxy with HTTPS
+
+If you are using Cloudflare Zero Trust/Access with Cloudflare Tunnel (see [auth.md](auth.md)), you can skip this step.
 
 For a custom domain with automatic TLS, install Caddy:
 
