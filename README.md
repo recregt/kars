@@ -13,6 +13,12 @@ A self-hosted media tracking application for movies, TV series, anime, manga, an
 - **Single binary** — frontend embedded, zero runtime dependencies
 - **Dual database** — local SQLite or remote [Turso](https://turso.tech)
 
+## Screenshots
+
+[![KARS Dashboard](assets/dashboard.webp)](assets/dashboard.webp)
+
+[![KARS Explore](assets/explore.webp)](assets/explore.webp)
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -84,4 +90,4 @@ cargo build -p kars --release --features embed-frontend
 
 ## License
 
-MIT
+[MIT](LICENSE)
