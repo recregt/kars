@@ -8,9 +8,11 @@ Step-by-step guide for building and deploying KARS to production.
 
 | Tool | Min Version | Purpose |
 |------|-------------|---------|
-| **Rust** | 1.85+ (edition 2024) | Backend compilation |
+| **Rust** | 1.85+ (edition 2024 required) | Backend compilation |
 | **Node.js** | 20+ | Frontend build |
 | **pnpm** | 9+ | Frontend package manager |
+
+> This project currently uses Rust **edition 2024** (`backend/Cargo.toml`), so older toolchains may fail to compile.
 
 ---
 
@@ -42,9 +44,11 @@ cd /project-root
 cargo build -p kars --release --features embed-frontend
 ```
 
-Output: `target/release/kars` (~16 MB, frontend included)
+Output: `target/release/kars` (~16 MB, frontend included; may vary based on embedded asset size)
 
 > **Important:** The frontend build MUST complete before the Rust build. If `frontend/out/` doesn't exist, compilation will fail.
+>
+> **Linux portability note:** Rust binaries can depend on the target system's libc/glibc version. For best compatibility across Linux distributions, build on the same OS family/version as the production server (or build inside a matching container image).
 
 ---
 
@@ -167,22 +171,29 @@ These are stored in `/opt/kars/.env` on the server (NOT in GitHub):
 ## 8. Architecture
 
 ```
-┌──────────┐   git push   ┌──────────────┐
+Deploy flow:
+┌───────────┐   git push   ┌──────────────┐
 │ Developer │ ───────────▶ │ GitHub (pub) │
-└──────────┘               └──────┬───────┘
+└───────────┘              └──────┬───────┘
                                   │ Actions CI/CD
                                   │ build → SCP → restart
                                   ▼
                            ┌──────────────┐
-                           │ Google Cloud  │
-                           │ /opt/kars/    │
-                           │ systemd svc   │
+                           │ App Server   │
+                           │ /opt/kars    │
+                           │ systemd svc  │
                            └──────┬───────┘
                                   │ libsql
                                   ▼
                            ┌──────────────┐
                            │ Turso DB     │
                            └──────────────┘
+
+Runtime access flow:
+┌──────────────┐   HTTPS   ┌────────────────────┐   origin   ┌──────────────┐
+│ End User     │ ────────▶ │ Cloudflare Access  │ ─────────▶ │ KARS Server  │
+│ Browser      │           │ (Zero Trust)       │            │ :3001/private│
+└──────────────┘           └────────────────────┘            └──────────────┘
 ```
 
 ---
@@ -210,7 +221,7 @@ ls -lh target/release/kars
 
 ## 10. Notes
 
-- **Portability:** The binary is fully self-contained — frontend files are embedded. Only the binary + `.env` are needed.
+- **Portability:** Frontend assets are embedded, but Linux binary compatibility may still vary by libc/glibc version. Prefer building in an environment that matches production.
 - **Database:** On first run, the `media_items` table is auto-created via migrations.
 - **SPA Routing:** In embed mode, unknown URLs are served `index.html` (SPA fallback).
 - **CORS:** Permissive CORS is enabled. Since the frontend is embedded (same origin), this is safe.
