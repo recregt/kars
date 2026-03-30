@@ -1,5 +1,9 @@
 # KARS - Media Tracker
 
+> [!IMPORTANT]
+> **This project is now archived.**
+> It is no longer being actively maintained or updated. The repository remains available as a reference and for historical purposes. Feel free to fork it if you wish to continue development.
+
 A self-hosted media tracking application for movies, TV series, anime, manga, and books. Single binary deployment with an embedded web dashboard.
 
 ![Rust](https://img.shields.io/badge/rust-v1.75+-orange.svg) ![License](https://img.shields.io/github/license/recregt/kars) ![Build & Deploy](https://github.com/recregt/kars/actions/workflows/deploy.yml/badge.svg)
